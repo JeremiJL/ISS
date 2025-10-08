@@ -33,7 +33,7 @@ volatile int counter_l = 0;
 
 float const signals_by_cm_ratio = 0.857;
 
-void setMotorDirection(bool right, bool backwards) {
+void set_motor_direction(bool right, bool backwards) {
     if (right) {
         if (backwards) {
         digitalWrite(RIGHT_MOTOR_IN1, LOW);
@@ -80,15 +80,17 @@ void printState(String order) {
 
 }
 
-void moveRight(int distance, bool backwards) {
-    setMotorDirection(true, backwards);
+void move(int distance, bool backwards, bool, right) {
+    set_motor_direction(true, backwards);
     int ticks = (int)(signals_by_cm_ratio * distance);
     int goal_ticks = counter_r + ticks;
     analogWrite(RIGHT_MOTOR_ENABLE, constrain(100, 0, 255));
-    while(counter_r < goal_ticks) {
-    }
+    while(counter_r < goal_ticks) {}
     analogWrite(RIGHT_MOTOR_ENABLE, constrain(0, 0, 255));
-    
+}
+
+void moveRight(int distance, bool backwards) {
+    move(distance, backwards, right)
 }
 void moveLeft(int distance, bool backwards){
 
