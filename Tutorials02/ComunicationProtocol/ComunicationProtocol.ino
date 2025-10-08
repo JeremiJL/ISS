@@ -23,11 +23,39 @@ String ROTATE_RIGHT = "rotate-right";
 #define LEFT_MOTOR_IN2 A3
 #define LEFT_MOTOR_ENABLE 6
 
+#define MOTOR_SWITCH_DELAY 20
+
 #define ENCODER_PIN_R 2
 #define ENCODER_PIN_L 3
 
 int counter_r = 0;
 int counter_l = 0;
+
+float const signals_by_cm_ratio = 0.857;
+
+void setMotorDirection(bool right, bool backwards) {
+    if (right) {
+        if (backwards) {
+        digitalWrite(RIGHT_MOTOR_IN1, LOW);
+        delay(MOTOR_SWITCH_DELAY);
+        digitalWrite(RIGHT_MOTOR_IN2, HIGH);
+        } else {
+            digitalWrite(RIGHT_MOTOR_IN2, LOW);
+            delay(MOTOR_SWITCH_DELAY);
+            digitalWrite(RIGHT_MOTOR_IN1, HIGH);
+        }
+    } else {
+        if (backwards) {
+        digitalWrite(RIGHT_MOTOR_IN1, LOW);
+        delay(MOTOR_SWITCH_DELAY);
+        digitalWrite(RIGHT_MOTOR_IN2, HIGH);
+        } else {
+            digitalWrite(RIGHT_MOTOR_IN2, LOW);
+            delay(MOTOR_SWITCH_DELAY);
+            digitalWrite(RIGHT_MOTOR_IN1, HIGH);
+        }
+    }   
+}
 
 void increment_right_counter() {
   counter_r++;
@@ -37,7 +65,7 @@ void increment_left_counter() {
   counter_l++;
 }
 
-void printState() {
+void printState(String order) {
     Serial.print("Right counter: ");
     Serial.print(counter_r);
     Serial.print("\n");
@@ -45,9 +73,20 @@ void printState() {
     Serial.print("Left counter: ");
     Serial.print(counter_l);
     Serial.print("\n");
+
+    Serial.print("Order : ");
+    Serial.print(order);
+    Serial.print("\n");
+
 }
 
 void moveRight(int distance, bool backwards) {
+    setMotorDirection(true, backwards);
+    int ticks = (int)(signals_by_cm_ratio * distance);
+    int goal_ticks = counter_r + ticks;
+    analogWrite(RIGHT_MOTOR_ENABLE, constrain(100, 0, 255));
+    while(counter_r < goal_ticks) {}
+    analogWrite(RIGHT_MOTOR_ENABLE, constrain(0, 0, 255));
     
 }
 void moveLeft(int distance, bool backwards){
@@ -64,6 +103,7 @@ void processOrders(String order) {
     if (order.startsWith(MOVE_RIGHT)){
         int distance = order.substring(MOVE_RIGHT.length(), order.length()).toInt();
         moveRight(distance, false);
+        Serial.print("supposed to move right");
     } if (order.startsWith(MOVE_LEFT)){
         int distance = order.substring(MOVE_LEFT.length(), order.length()).toInt();
         moveLeft(distance, false);
@@ -84,7 +124,7 @@ void processOrders(String order) {
         moveRight(distance, true);
         moveLeft(distance, true);
     } else {
-        ;
+        Serial.print("nothing matched");
     }
 }
 
@@ -95,6 +135,10 @@ void setup() {
     // Coonfigure wheels state monitoring
     attachInterrupt(digitalPinToInterrupt(ENCODER_PIN_R), increment_right_counter, RISING);
     attachInterrupt(digitalPinToInterrupt(ENCODER_PIN_L), increment_left_counter, RISING);
+    // Configure wheels' motors
+    pinMode(RIGHT_MOTOR_IN1, OUTPUT);
+    pinMode(RIGHT_MOTOR_IN2, OUTPUT);
+    pinMode(RIGHT_MOTOR_ENABLE, OUTPUT);
 }
 
 void loop() {
@@ -103,9 +147,13 @@ void loop() {
     // Process orders
     processOrders(order);
     // Display state
-    printState();
+    printState(order);
 }
 
-// 
+// Notes :
+
+// X = 18 [signal rises]
+// Y = 21 [cm]
+// X/Y = 0.857 [signal/cm]
 
 
