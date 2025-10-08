@@ -28,8 +28,8 @@ String ROTATE_RIGHT = "rotate-right";
 #define ENCODER_PIN_R 2
 #define ENCODER_PIN_L 3
 
-int counter_r = 0;
-int counter_l = 0;
+volatile int counter_r = 0;
+volatile int counter_l = 0;
 
 float const signals_by_cm_ratio = 0.857;
 
@@ -85,7 +85,8 @@ void moveRight(int distance, bool backwards) {
     int ticks = (int)(signals_by_cm_ratio * distance);
     int goal_ticks = counter_r + ticks;
     analogWrite(RIGHT_MOTOR_ENABLE, constrain(100, 0, 255));
-    while(counter_r < goal_ticks) {}
+    while(counter_r < goal_ticks) {
+    }
     analogWrite(RIGHT_MOTOR_ENABLE, constrain(0, 0, 255));
     
 }
