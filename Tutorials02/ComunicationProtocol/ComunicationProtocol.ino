@@ -34,7 +34,7 @@ volatile int counter_l = 0;
 float const signals_by_cm_ratio = 0.857;
 float const angle_to_distance_ratio = 0.5;
 
-String const path = "move-foreward 10\nrotate-right 90\nmove-backwards 4\nrotate-left 45\nmove-right 6\n"
+String const path = "move-foreward 10\nrotate-right 90\nmove-backwards 4\nrotate-left 45\nmove-right 6\n";
 
 void set_motor_direction(bool right, bool backwards) {
     if (right) {
@@ -102,7 +102,7 @@ void moveRight(int distance_in_cm, bool backwards) {
     move(distance_in_cm, backwards, true);
 }
 void moveLeft(int distance_in_cm, bool backwards){
-    move(distance_in_cm, backwards, false)
+    move(distance_in_cm, backwards, false);
 }
 
 void rotateRight(int angle) {
@@ -122,6 +122,7 @@ void processOrders(String order) {
         moveRight(distance_in_cm, false);
         Serial.print("supposed to move right");
     } if (order.startsWith(MOVE_LEFT)){
+        Serial.print("left matched\n");
         int distance_in_cm = order.substring(MOVE_LEFT.length(), order.length()).toInt();
         moveLeft(distance_in_cm, false);
     } if (order.startsWith(ROTATE_LEFT)){
@@ -141,7 +142,7 @@ void processOrders(String order) {
         moveRight(distance_in_cm, true);
         moveLeft(distance_in_cm, true);
     } else {
-        Serial.print("nothing matched");
+        Serial.print("nothing matched\n");
     }
 }
 
