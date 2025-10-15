@@ -88,32 +88,22 @@ void set_motor_speed(int motor_pin, int speed) {
 }
 
 void move(int distance_in_cm, bool backwards, bool right) {
+    int ticks = (int)(signals_by_cm_ratio * distance_in_cm);
     set_motor_direction(true, backwards);
 
-    int ticks = (int)(signals_by_cm_ratio * distance_in_cm);
-    
     if (right) {
         int goal_ticks = counter_r + ticks;
-        turn_right_engine(goal_ticks);
+        set_motor_speed(RIGHT_MOTOR_ENABLE, 255);
+        while(counter_r < goal_ticks) {
+        }
+        set_motor_speed(RIGHT_MOTOR_ENABLE, 0);
     } else {
         int goal_ticks = counter_l + ticks;
-        turn_left_engine(goal_ticks);
+        set_motor_speed(LEFT_MOTOR_ENABLE, 255);
+        while(counter_l < goal_ticks) {
+        }
+        set_motor_speed(LEFT_MOTOR_ENABLE, 0);
     }
-}
-
-void turn_right_engine(int goal_ticks) {
-    set_motor_speed(RIGHT_MOTOR_ENABLE, 255);
-    while(counter_r < goal_ticks) {}
-    set_motor_speed(RIGHT_MOTOR_ENABLE, 0);
-}
-
-void turn_left_engine(int goal_ticks) {
-    Serial.print("left matched, goal ticks - ");
-    Serial.print(goal_ticks);
-
-    set_motor_speed(LEFT_MOTOR_ENABLE, 255);
-    while(counter_l < goal_ticks) {}
-    set_motor_speed(LEFT_MOTOR_ENABLE, 0);
 }
 
 void moveRight(int distance_in_cm, bool backwards) {
@@ -182,8 +172,9 @@ void loop() {
     processOrders(order);
     // Display state
     printState(order);
+    // 
+    // set_motor_speed(RIGHT_MOTOR_ENABLE, 255);
 
-    turn_left_engine(30);
 }
 
 // Notes :
