@@ -5,9 +5,9 @@
 String MOVE_RIGHT = "move-right";
 // Move left by x cm : move-left x
 String MOVE_LEFT = "move-left";
-// Move foreward by x cm : move-forward x
-String MOVE_FOREWARD = "move-foreward";
-// Move backwards by x cm : move-bacward x
+// Move foreward by x cm : move-forwards x
+String MOVE_FOREWARD = "move-forwards";
+// Move backwards by x cm : move-backwards x
 String MOVE_BACKWARDS = "move-backwards";
 // Rotate in left direction by y angle : rotate-left y
 String ROTATE_LEFT = "rotate-left";
@@ -34,7 +34,7 @@ volatile int counter_l = 0;
 float const signals_by_cm_ratio = 0.857;
 float const angle_to_distance_ratio = 0.5;
 
-String const path = "move-foreward 10\nrotate-right 90\nmove-backwards 4\nrotate-left 45\nmove-right 6\n";
+String const path = "move-forwards 10\nrotate-right 90\nmove-backwards 4\nrotate-left 45\nmove-right 6\n";
 
 void set_motor_direction(bool right, bool backwards) {
     if (right) {
@@ -80,22 +80,40 @@ void printState(String order) {
     Serial.print("Order : ");
     Serial.print(order);
     Serial.print("\n");
+}
 
+void set_motor_speed(int motor_pin, int speed) {
+    speed = constrain(speed, 0, 255);
+    analogWrite(motor_pin, speed);
 }
 
 void move(int distance_in_cm, bool backwards, bool right) {
     set_motor_direction(true, backwards);
+
     int ticks = (int)(signals_by_cm_ratio * distance_in_cm);
-    int goal_ticks = counter_r + ticks;
-    int motor_pin = -1;
+    
     if (right) {
-        motor_pin = RIGHT_MOTOR_ENABLE;
+        int goal_ticks = counter_r + ticks;
+        turn_right_engine(goal_ticks);
     } else {
-        motor_pin = LEFT_MOTOR_ENABLE;
+        int goal_ticks = counter_l + ticks;
+        turn_left_engine(goal_ticks);
     }
-    analogWrite(motor_pin, constrain(100, 0, 255));
+}
+
+void turn_right_engine(int goal_ticks) {
+    set_motor_speed(RIGHT_MOTOR_ENABLE, 255);
     while(counter_r < goal_ticks) {}
-    analogWrite(motor_pin, constrain(0, 0, 255));
+    set_motor_speed(RIGHT_MOTOR_ENABLE, 0);
+}
+
+void turn_left_engine(int goal_ticks) {
+    Serial.print("left matched, goal ticks - ");
+    Serial.print(goal_ticks);
+
+    set_motor_speed(LEFT_MOTOR_ENABLE, 255);
+    while(counter_l < goal_ticks) {}
+    set_motor_speed(LEFT_MOTOR_ENABLE, 0);
 }
 
 void moveRight(int distance_in_cm, bool backwards) {
@@ -120,9 +138,7 @@ void processOrders(String order) {
     if (order.startsWith(MOVE_RIGHT)){
         int distance_in_cm = order.substring(MOVE_RIGHT.length(), order.length()).toInt();
         moveRight(distance_in_cm, false);
-        Serial.print("supposed to move right");
     } if (order.startsWith(MOVE_LEFT)){
-        Serial.print("left matched\n");
         int distance_in_cm = order.substring(MOVE_LEFT.length(), order.length()).toInt();
         moveLeft(distance_in_cm, false);
     } if (order.startsWith(ROTATE_LEFT)){
@@ -166,6 +182,8 @@ void loop() {
     processOrders(order);
     // Display state
     printState(order);
+
+    turn_left_engine(30);
 }
 
 // Notes :
