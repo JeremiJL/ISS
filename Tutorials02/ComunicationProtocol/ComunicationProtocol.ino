@@ -32,6 +32,9 @@ volatile int counter_r = 0;
 volatile int counter_l = 0;
 
 float const signals_by_cm_ratio = 0.857;
+float const angle_to_distance_ratio = 0.5;
+
+String const path = "move-foreward 10\nrotate-right 90\nmove-backwards 4\nrotate-left 45\nmove-right 6\n"
 
 void set_motor_direction(bool right, bool backwards) {
     if (right) {
@@ -80,36 +83,47 @@ void printState(String order) {
 
 }
 
-void move(int distance, bool backwards, bool, right) {
+void move(int distance_in_cm, bool backwards, bool right) {
     set_motor_direction(true, backwards);
-    int ticks = (int)(signals_by_cm_ratio * distance);
+    int ticks = (int)(signals_by_cm_ratio * distance_in_cm);
     int goal_ticks = counter_r + ticks;
-    analogWrite(RIGHT_MOTOR_ENABLE, constrain(100, 0, 255));
+    int motor_pin = -1;
+    if (right) {
+        motor_pin = RIGHT_MOTOR_ENABLE;
+    } else {
+        motor_pin = LEFT_MOTOR_ENABLE;
+    }
+    analogWrite(motor_pin, constrain(100, 0, 255));
     while(counter_r < goal_ticks) {}
-    analogWrite(RIGHT_MOTOR_ENABLE, constrain(0, 0, 255));
+    analogWrite(motor_pin, constrain(0, 0, 255));
 }
 
-void moveRight(int distance, bool backwards) {
-    move(distance, backwards, right)
+void moveRight(int distance_in_cm, bool backwards) {
+    move(distance_in_cm, backwards, true);
 }
-void moveLeft(int distance, bool backwards){
+void moveLeft(int distance_in_cm, bool backwards){
+    move(distance_in_cm, backwards, false)
+}
 
-}
 void rotateRight(int angle) {
-
+    int distance_in_cm = angle * angle_to_distance_ratio;
+    moveRight(distance_in_cm, true);
+    moveLeft(distance_in_cm, false);
 }
 void rotateLeft(int angle) {
-    
+    int distance_in_cm = angle * angle_to_distance_ratio;
+    moveRight(distance_in_cm, false);
+    moveLeft(distance_in_cm, true);
 }
 
 void processOrders(String order) {
     if (order.startsWith(MOVE_RIGHT)){
-        int distance = order.substring(MOVE_RIGHT.length(), order.length()).toInt();
-        moveRight(distance, false);
+        int distance_in_cm = order.substring(MOVE_RIGHT.length(), order.length()).toInt();
+        moveRight(distance_in_cm, false);
         Serial.print("supposed to move right");
     } if (order.startsWith(MOVE_LEFT)){
-        int distance = order.substring(MOVE_LEFT.length(), order.length()).toInt();
-        moveLeft(distance, false);
+        int distance_in_cm = order.substring(MOVE_LEFT.length(), order.length()).toInt();
+        moveLeft(distance_in_cm, false);
     } if (order.startsWith(ROTATE_LEFT)){
         int angle = order.substring(ROTATE_LEFT.length(), order.length()).toInt();
         rotateLeft(angle);
@@ -117,15 +131,15 @@ void processOrders(String order) {
         int angle = order.substring(ROTATE_RIGHT.length(), order.length()).toInt();
         rotateRight(angle);
     } if (order.startsWith(MOVE_FOREWARD)){
-        int distance = order.substring(MOVE_FOREWARD.length(), order.length()).toInt();
+        int distance_in_cm = order.substring(MOVE_FOREWARD.length(), order.length()).toInt();
         // it may not work (if it's done sequentially)
-        moveRight(distance, false);
-        moveLeft(distance, false);
+        moveRight(distance_in_cm, false);
+        moveLeft(distance_in_cm, false);
     } if (order.startsWith(MOVE_BACKWARDS)){
-        int distance = order.substring(MOVE_BACKWARDS.length(), order.length()).toInt();
+        int distance_in_cm = order.substring(MOVE_BACKWARDS.length(), order.length()).toInt();
         // it may not work (if it's done sequentially)
-        moveRight(distance, true);
-        moveLeft(distance, true);
+        moveRight(distance_in_cm, true);
+        moveLeft(distance_in_cm, true);
     } else {
         Serial.print("nothing matched");
     }
