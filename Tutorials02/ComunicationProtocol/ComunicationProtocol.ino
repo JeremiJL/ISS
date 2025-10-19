@@ -5,8 +5,8 @@
 String MOVE_RIGHT = "move-right";
 // Move left by x cm : move-left x
 String MOVE_LEFT = "move-left";
-// Move foreward by x cm : move-forward x
-String MOVE_FOREWARD = "move-forward";
+// Move forward by x cm : move-forward x
+String MOVE_FORWARD = "move-forward";
 // Move backwards by x cm : move-backwards x
 String MOVE_BACKWARDS = "move-backwards";
 // Rotate in left direction by y angle : rotate-left y
@@ -192,8 +192,8 @@ void process_orders(String order) {
         int angle = extract_distance_from_order(order, ROTATE_RIGHT);
         rotate_right(angle);
 
-    } if (order.startsWith(MOVE_FOREWARD)){
-        int distance_in_cm = extract_distance_from_order(order, MOVE_FOREWARD);
+    } if (order.startsWith(MOVE_FORWARD)){
+        int distance_in_cm = extract_distance_from_order(order, MOVE_FORWARD);
         move_forward(distance_in_cm);
 
     } if (order.startsWith(MOVE_BACKWARDS)){
