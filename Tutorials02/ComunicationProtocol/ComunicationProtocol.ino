@@ -39,6 +39,7 @@ float const ANGLE_TO_DISTANCE_RATIO = 0.5;
 const int DEFAULT_SPEED = 255;
 
 String const PATH[] = {"move-forward 10","rotate-right 90","move-backwards 4","rotate-left 45","move-right 6"}
+int const DELAY = 300; // in ms
 
 // Debug :
 void print_state(String order) {
@@ -175,6 +176,7 @@ void rotate_left(int angle) {
 
 // Move according to path
 void move_path() {
+    delay(DELAY);
     for (byte i = 0; i < sizeof(PATH); i++) {
         process_orders(PATH[i]);
     }
