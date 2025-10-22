@@ -13,6 +13,8 @@ String MOVE_BACKWARDS = "move-backwards";
 String ROTATE_LEFT = "rotate-left";
 // Rotate in right direction by y angle : rotate-right y
 String ROTATE_RIGHT = "rotate-right";
+// Move according to predefined path
+String MOVE_PATH = "move-path"
 
 
 #define RIGHT_MOTOR_IN1 A0
@@ -36,7 +38,7 @@ float const ANGLE_TO_DISTANCE_RATIO = 0.5;
 
 const int DEFAULT_SPEED = 255;
 
-String const path = "move-forward 10\nrotate-right 90\nmove-backwards 4\nrotate-left 45\nmove-right 6\n";
+String const PATH[] = {"move-forward 10","rotate-right 90","move-backwards 4","rotate-left 45","move-right 6"}
 
 // Debug :
 void print_state(String order) {
@@ -171,6 +173,13 @@ void rotate_left(int angle) {
     rotate(angle, false);
 }
 
+// Move according to path
+void move_path() {
+    for (byte i = 0; i < sizeof(PATH); i++) {
+        process_orders(PATH[i]);
+    }
+}
+
 // Process user's orders
 int extract_distance_from_order(String raw_order, String movement) {
     int distance = raw_order.substring(movement.length(), raw_order.length()).toInt();
@@ -201,6 +210,10 @@ void process_orders(String order) {
     } if (order.startsWith(MOVE_BACKWARDS)){
         int distance_in_cm = extract_distance_from_order(order, MOVE_BACKWARDS);
         move_backwards(distance_in_cm);
+
+    if (order.startsWith(MOVE_PATH)){
+        move_path();
+    }
 
     } else {
         Serial.print("No order matched : [");
