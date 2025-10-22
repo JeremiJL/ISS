@@ -2,27 +2,27 @@
 
 // Protocol ;
 // Move right by x cm : move-right x
-String MOVE_RIGHT = "move-right";
+String const MOVE_RIGHT = "move-right";
 // Move left by x cm : move-left x
-String MOVE_LEFT = "move-left";
+String const MOVE_LEFT = "move-left";
 // Move forward by x cm : move-forward x
-String MOVE_FORWARD = "move-forward";
+String const MOVE_FORWARD = "move-forward";
 // Move backwards by x cm : move-backwards x
-String MOVE_BACKWARDS = "move-backwards";
+String const MOVE_BACKWARDS = "move-backwards";
 // Rotate in left direction by y angle : rotate-left y
-String ROTATE_LEFT = "rotate-left";
+String const ROTATE_LEFT = "rotate-left";
 // Rotate in right direction by y angle : rotate-right y
-String ROTATE_RIGHT = "rotate-right";
+String const ROTATE_RIGHT = "rotate-right";
 // Move according to predefined path
-String MOVE_PATH = "move-path"
+String const MOVE_PATH = "move-path";
 
 
 #define RIGHT_MOTOR_IN1 A0
 #define RIGHT_MOTOR_IN2 A1
 #define RIGHT_MOTOR_ENABLE 5
 
-#define LEFT_MOTOR_IN1 A2
-#define LEFT_MOTOR_IN2 A3
+#define LEFT_MOTOR_IN1 A3
+#define LEFT_MOTOR_IN2 A2
 #define LEFT_MOTOR_ENABLE 6
 
 #define MOTOR_SWITCH_DELAY 20
@@ -34,12 +34,14 @@ volatile int counter_r = 0;
 volatile int counter_l = 0;
 
 float const SIGNALS_BY_CM_RATIO = 0.857;
-float const ANGLE_TO_DISTANCE_RATIO = 0.5;
+float const ANGLE_TO_DISTANCE_RATIO = 0.1;
 
-const int DEFAULT_SPEED = 255;
+const int DEFAULT_SPEED = 100;
 
-String const PATH[] = {"move-forward 10","rotate-right 90","move-backwards 4","rotate-left 45","move-right 6"}
-int const DELAY = 300; // in ms
+String const PATH[] = {"move-forward 10","rotate-right 90","move-backwards 4","rotate-left 45","move-right 6"};
+int const PATH_LENGTH = 5;
+int const LONG_DELAY = 3000; // in ms
+int const SHORT_DELAY = 1000; // in ms
 
 // Debug :
 void print_state(String order) {
@@ -176,9 +178,17 @@ void rotate_left(int angle) {
 
 // Move according to path
 void move_path() {
-    delay(DELAY);
-    for (byte i = 0; i < sizeof(PATH); i++) {
+    Serial.print("Moving along the path:\n");
+    delay(LONG_DELAY);
+    for (int i = 0; i < PATH_LENGTH; i++) {
+        // Loggig
+        Serial.print("Path order: ");
+        Serial.print(PATH[i]);
+        Serial.print("\n");
+        // Process order
         process_orders(PATH[i]);
+        // Wait
+        delay(SHORT_DELAY);
     }
 }
 
@@ -213,9 +223,8 @@ void process_orders(String order) {
         int distance_in_cm = extract_distance_from_order(order, MOVE_BACKWARDS);
         move_backwards(distance_in_cm);
 
-    if (order.startsWith(MOVE_PATH)){
+    } if (order.startsWith(MOVE_PATH)){
         move_path();
-    }
 
     } else {
         Serial.print("No order matched : [");
