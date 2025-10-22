@@ -129,12 +129,13 @@ void move_in_line(int distance_in_cm, bool backwards) {
     set_right_motor_direction(backwards);
     set_left_motor_direction(backwards);
 
-    // assuming that motors are equally calibrated
     int right_goal = get_goal_ticks_from_cm(distance_in_cm, counter_r);
+    int left_goal = get_goal_ticks_from_cm(distance_in_cm, counter_l);
+
 
     set_right_motor_speed(DEFAULT_SPEED);
     set_left_motor_speed(DEFAULT_SPEED);
-    while(counter_r < right_goal) {}
+    while(counter_r < right_goal || counter_l < left_goal) {}
     set_right_motor_speed(0);
     set_left_motor_speed(0);
 }
@@ -149,15 +150,16 @@ void move_backwards(int distance_in_cm) {
 
 // Rotations :
 void rotate(int angle, bool right) {
-    int distance_in_cm = angle * ANGLE_TO_DISTANCE_RATIO;
-    int right_goal = get_goal_ticks_from_cm(distance_in_cm, counter_r);
-
     set_right_motor_direction(right);
     set_left_motor_direction(!right);
 
+    int distance_in_cm = angle * ANGLE_TO_DISTANCE_RATIO;
+    int right_goal = get_goal_ticks_from_cm(distance_in_cm, counter_r);
+    int left_goal = get_goal_ticks_from_cm(distance_in_cm, counter_l);
+
     set_right_motor_speed(DEFAULT_SPEED);
     set_left_motor_speed(DEFAULT_SPEED);
-    while(counter_r < right_goal) {}
+    while(counter_r < right_goal || counter_l < left_goal) {}
     set_right_motor_speed(0);
     set_left_motor_speed(0);
 }
