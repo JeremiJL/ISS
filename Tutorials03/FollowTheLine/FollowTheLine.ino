@@ -1,6 +1,7 @@
 #include "TRSensors.h"
 #include <stdio.h>
 
+// Pins
 #define RIGHT_MOTOR_FWD A0
 #define RIGHT_MOTOR_REV A1
 #define RIGHT_MOTOR_ENABLE 5
@@ -9,26 +10,17 @@
 #define LEFT_MOTOR_REV A2
 #define LEFT_MOTOR_ENABLE 6
 
+// Speed
+#define DEFAULT_SPEED 100
+#define ROTATION_SPEED 50
 #define MOTOR_SWITCH_DELAY 100
 
 // Sensors
-constexpr int num_sensors = 5;
-unsigned int sensorValues[num_sensors];
+const unsigned int CENTER_OF_THE_LINE = 200;
+constexpr int NUM_SENSORS = 5;
+unsigned int sensorValues[NUM_SENSORS];
+TRSensors trs = TRSensors();
 
-
-// Print customization
-int put(char c, FILE *f) {
-  Serial.write(c);
-  return 0;
-}
-void fix_printf() {
-  fdevopen(&put, 0);
-}
-
-// Robot control
-void PID(){
-
-}
 
 // Sensor calibration
 void calibrateSensors(TRSensors trs){
@@ -40,13 +32,15 @@ void calibrateSensors(TRSensors trs){
 
   Serial.println("Min values:");
   for (int i = 0; i < 5; i++ ) {
-    printf("%d ", trs.calibratedMin[i]);
+    Serial.print(trs.calibratedMin[i]);
+    Serial.print(", ");
   }
   Serial.println();
-  
+
   Serial.println("Max values:");
   for (int i = 0; i < 5; i++ ) {
-    printf("%d ", trs.calibratedMax[i]);
+    Serial.print(trs.calibratedMax[i]);
+    Serial.print(", ");
   }
   Serial.println();
 }
@@ -56,7 +50,7 @@ class Motor {
     int pinFwd;
     int pinRev;
     int pinPow;
-    
+
     public:
         init() {
           pinMode(pinFwd, OUTPUT);
@@ -66,7 +60,7 @@ class Motor {
         set_speed(int speed) {
           speed = constrain(speed, 0, 255);
           analogWrite(pinPow, speed);
-        }      
+        }
         set_direction(bool forward) {
           if (forward) {
               digitalWrite(this->pinRev, LOW);
@@ -78,35 +72,83 @@ class Motor {
               digitalWrite(this->pinRev, HIGH);
           }
         }
-        stop();
-
+        stop(){
+          set_speed(0);
+        }
         Motor(int pinFwd, int pinRev, int pinPow) {
           this->pinFwd = pinFwd;
-          this->pinRev = pinRev;                 
+          this->pinRev = pinRev;
           this->pinPow = pinPow;
         }
 };
 
-// Global declarations
-Motor left(RIGHT_MOTOR_FWD,RIGHT_MOTOR_REV,RIGHT_MOTOR_ENABLE);
-Motor right(LEFT_MOTOR_FWD,LEFT_MOTOR_REV,LEFT_MOTOR_ENABLE);
-TRSensors trs = TRSensors();
+// Motor's global declarations
+Motor right_motor(RIGHT_MOTOR_FWD,RIGHT_MOTOR_REV,RIGHT_MOTOR_ENABLE);
+Motor left_motor(LEFT_MOTOR_FWD,LEFT_MOTOR_REV,LEFT_MOTOR_ENABLE);
+
+// Movements
+void stop() {
+  right_motor.stop();
+  left_motor.stop();
+}
+
+void move_forward() {
+    right_motor.set_direction(true);
+    left_motor.set_direction(true);
+
+    right_motor.set_speed(DEFAULT_SPEED);
+    left_motor.set_speed(DEFAULT_SPEED);
+}
+
+void calibrateToRight() {
+    right_motor.set_direction(false);
+    left_motor.set_direction(true);
+
+    right_motor.set_speed(ROTATION_SPEED);
+    left_motor.set_speed(ROTATION_SPEED);
+
+    while (trs.readLine(sensorValues) < CENTER_OF_THE_LINE) {}
+
+    stop();
+}
+
+void calibrateToLeft() {
+    right_motor.set_direction(true);
+    left_motor.set_direction(false);
+
+    right_motor.set_speed(ROTATION_SPEED);
+    left_motor.set_speed(ROTATION_SPEED);
+
+    while (trs.readLine(sensorValues) > CENTER_OF_THE_LINE) {}
+
+    stop();
+}
+
+void calibrate() {
+    unsigned int offset = trs.readLine(sensorValues);
+    if (offset < CENTER_OF_THE_LINE)
+      calibrateToRight();
+    if (offset > CENTER_OF_THE_LINE)
+      calibrateToLeft();
+}
 
 void setup() {
   // Monitor output
   Serial.begin(9600);
-  fix_printf();
 
   // Initialzie motors
-  left.init();
-  right.init();
+  left_motor.init();
+  right_motor.init();
 
   // Calibrate sensors
   calibrateSensors(trs);
 }
 
 void loop() {
-    // process serial input
-    // read the sensors and adjust the motor speeds (see TRSensorsExample.ino)
-    // this loop should run around 10 times per second, make sure that no function stalls
+    // Move forward for at least 100 ms
+    move_forward();
+    delay(100);
+    // After that, calibrate to match the line
+    calibrate();
+    // Then move forward accoring to the line again...
 }
