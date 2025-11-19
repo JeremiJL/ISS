@@ -11,13 +11,13 @@
 #define LEFT_MOTOR_ENABLE 6
 
 // Speed
-#define DEFAULT_SPEED 100
-#define MOTOR_SWITCH_DELAY 100
+#define DEFAULT_SPEED 150
+#define MOTOR_SWITCH_DELAY 5
 
 // Timer
 unsigned long timer_dt = millis();
 unsigned long timer_logging = millis();
-unsigned int logging_pace = 500;
+unsigned int logging_pace = 2000;
 
 // Sensors
 const unsigned int CENTER_OF_THE_LINE = 2000;
@@ -25,15 +25,17 @@ constexpr int NUM_SENSORS = 5;
 unsigned int sensorValues[NUM_SENSORS];
 TRSensors trs = TRSensors();
 
+// MAKE ALL GLOBAL VARIABLES AS LOCAL ONES TO REDUCE THE POTENTIAL OF SIDE EFFECTS
 // PID
 double PID = 0;
 int past_error = 0;
+int current_error = 0;
 unsigned int dt = 50;
 double integral = 0;
 
-const double proportion_weight = 1.0;
-const double integral_weight = 1.0;
-const double derivative_weight = 1.0;
+const double proportion_weight = 0.5;
+const double integral_weight = 0;
+const double derivative_weight = 0.2;
 
 
 // Sensor calibration
@@ -116,7 +118,9 @@ void move_forward() {
 
 void calibrate() {
     unsigned int current_position = trs.readLine(sensorValues);
-    int current_error = CENTER_OF_THE_LINE - current_position;
+    current_error = CENTER_OF_THE_LINE - current_position;
+
+
 
     // PID attributes
     double proportion = current_error;
@@ -134,8 +138,23 @@ void calibrate() {
 // Debug
 void log_state() {
     // Print PID
-    Serial.print("PID :");
+    Serial.print("PID : ");
     Serial.print(PID);
+    Serial.print("\t");
+
+    // Print Current error
+    Serial.print("Current error : ");
+    Serial.print(current_error);
+    Serial.print("\t");
+
+    // Print Past Error
+    Serial.print("Past error : ");
+    Serial.print(past_error);
+    Serial.print("\t");
+
+    // Print Integral
+    Serial.print("Integral : ");
+    Serial.print(integral);
     Serial.print("\n");
 }
 
