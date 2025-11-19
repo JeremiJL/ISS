@@ -15,11 +15,23 @@
 #define ROTATION_SPEED 50
 #define MOTOR_SWITCH_DELAY 100
 
+// Timer
+unsigned long timer_dt = millis();
+
 // Sensors
 const unsigned int CENTER_OF_THE_LINE = 200;
 constexpr int NUM_SENSORS = 5;
 unsigned int sensorValues[NUM_SENSORS];
 TRSensors trs = TRSensors();
+
+// PID
+int past_error = 0;
+int dt = 100;
+double integral = 0;
+
+const double proportion_weight = 1.0;
+const double integral_weight = 1.0;
+const double derivative_weight = 1.0;
 
 
 // Sensor calibration
@@ -100,36 +112,39 @@ void move_forward() {
     left_motor.set_speed(DEFAULT_SPEED);
 }
 
-void calibrateToRight() {
-    right_motor.set_direction(false);
-    left_motor.set_direction(true);
+void calibrateToRight(double PID) {
 
-    right_motor.set_speed(ROTATION_SPEED);
+    int difference = constrain(PID, 0, 255);
+
+    right_motor.set_speed(ROTATION_SPEED - difference);
     left_motor.set_speed(ROTATION_SPEED);
-
-    while (trs.readLine(sensorValues) < CENTER_OF_THE_LINE) {}
-
-    stop();
 }
 
-void calibrateToLeft() {
-    right_motor.set_direction(true);
-    left_motor.set_direction(false);
+void calibrateToLeft(double PID) {
+
+    int difference = constrain(PID, 0, 255);
 
     right_motor.set_speed(ROTATION_SPEED);
-    left_motor.set_speed(ROTATION_SPEED);
-
-    while (trs.readLine(sensorValues) > CENTER_OF_THE_LINE) {}
-
-    stop();
+    left_motor.set_speed(ROTATION_SPEED - difference);
 }
 
 void calibrate() {
-    unsigned int offset = trs.readLine(sensorValues);
-    if (offset < CENTER_OF_THE_LINE)
-      calibrateToRight();
-    if (offset > CENTER_OF_THE_LINE)
-      calibrateToLeft();
+    unsigned int current_position = trs.readLine(sensorValues);
+    int current_error = CENTER_OF_THE_LINE - current_position;
+
+    // PID attributes
+    double proportion =  current_error;
+    double derivative = (past_error - current_error) / dt;
+    integral = integral + current_error * dt;
+
+    double PID = proportion * proportion_weight + derivative * derivative_weight + integral * integral_weight;
+
+    if (PID > 0)
+      calibrateToRight(PID);
+    if (PID < 0)
+      calibrateToLeft(PID);
+
+    past_error = current_error;
 }
 
 void setup() {
@@ -142,13 +157,16 @@ void setup() {
 
   // Calibrate sensors
   calibrateSensors(trs);
+
+  // Start moving
+  move_forward();
 }
 
 void loop() {
-    // Move forward for at least 100 ms
-    move_forward();
-    delay(100);
-    // After that, calibrate to match the line
-    calibrate();
-    // Then move forward accoring to the line again...
+    const unsigned long current_time = millis();
+
+    if (current_time - timer_dt >= dt) { // timer for 100 ms
+      timer_dt = current_time;
+      calibrate();
+    }
 }
