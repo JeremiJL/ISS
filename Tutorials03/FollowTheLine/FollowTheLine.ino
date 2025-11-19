@@ -16,8 +16,6 @@
 
 // Timer
 unsigned long timer_dt = millis();
-unsigned long timer_logging = millis();
-unsigned int logging_pace = 2000;
 
 // Sensors
 const unsigned int CENTER_OF_THE_LINE = 2000;
@@ -25,18 +23,59 @@ constexpr int NUM_SENSORS = 5;
 unsigned int sensorValues[NUM_SENSORS];
 TRSensors trs = TRSensors();
 
-// MAKE ALL GLOBAL VARIABLES AS LOCAL ONES TO REDUCE THE POTENTIAL OF SIDE EFFECTS
 // PID
-double PID = 0;
+const unsigned int dt = 50;
+
 int past_error = 0;
-int current_error = 0;
-unsigned int dt = 50;
 double integral = 0;
 
 const double proportion_weight = 0.5;
 const double integral_weight = 0;
 const double derivative_weight = 0.2;
 
+// Logging - Debug
+unsigned long calibration_iteration = 0;
+
+
+// Debug
+void log_state(int iteration_number, int current_error, int past_error,
+                double PID, double proportion, double integral, double derivative) {
+
+    // Iteration number
+    Serial.print("Iteration : ");
+    Serial.print(iteration_number);
+    Serial.print("\t");
+
+    // Print Current error
+    Serial.print("Current error : ");
+    Serial.print(current_error);
+    Serial.print("\t");
+
+    // Print Past Error
+    Serial.print("Past error : ");
+    Serial.print(past_error);
+    Serial.print("\t");
+
+    // Print PID
+    Serial.print("PID : ");
+    Serial.print(PID);
+    Serial.print("\t");
+
+    // Print proportion
+    Serial.print("Weighted proportion : ");
+    Serial.print(proportion);
+    Serial.print("\t");
+
+    // Print Integral
+    Serial.print("Weighted integral : ");
+    Serial.print(integral);
+    Serial.print("\t");
+
+    // Print Integral
+    Serial.print("Weighted derivative : ");
+    Serial.print(derivative);
+    Serial.print("\n");
+}
 
 // Sensor calibration
 void calibrateSensors(TRSensors trs){
@@ -117,46 +156,33 @@ void move_forward() {
 }
 
 void calibrate() {
+   // Auxuliary values
     unsigned int current_position = trs.readLine(sensorValues);
-    current_error = CENTER_OF_THE_LINE - current_position;
-
-
+    int current_error = CENTER_OF_THE_LINE - current_position;
 
     // PID attributes
     double proportion = current_error;
-    double derivative = (past_error - current_error) / dt;
     integral = integral + current_error * dt;
+    double derivative = (past_error - current_error) / dt;
 
-    PID = proportion * proportion_weight + derivative * derivative_weight + integral * integral_weight;
+    // Caculation of PID value
+    double PID = proportion * proportion_weight + integral * integral_weight + derivative * derivative_weight;
 
+    // Reaction on the system proportional to PID value
     right_motor.set_speed(DEFAULT_SPEED + PID);
     left_motor.set_speed(DEFAULT_SPEED - PID);
 
+    // Auxuliary values for second iteration
     past_error = current_error;
+
+    // Incrementing number of calibrations for debug purposes
+    calibration_iteration++;
+
+    // Logging
+    log_state(calibration_iteration, current_error, past_error, PID, proportion, integral, derivative);
 }
 
-// Debug
-void log_state() {
-    // Print PID
-    Serial.print("PID : ");
-    Serial.print(PID);
-    Serial.print("\t");
 
-    // Print Current error
-    Serial.print("Current error : ");
-    Serial.print(current_error);
-    Serial.print("\t");
-
-    // Print Past Error
-    Serial.print("Past error : ");
-    Serial.print(past_error);
-    Serial.print("\t");
-
-    // Print Integral
-    Serial.print("Integral : ");
-    Serial.print(integral);
-    Serial.print("\n");
-}
 
 void setup() {
     // Monitor output
@@ -180,9 +206,4 @@ void loop() {
         timer_dt = current_time;
         calibrate();
     }
-
-  if (current_time - timer_logging >= logging_pace) { // timer for 100 ms
-      timer_logging = current_time;
-      log_state();
-  }
 }
