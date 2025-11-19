@@ -12,11 +12,12 @@
 
 // Speed
 #define DEFAULT_SPEED 100
-#define ROTATION_SPEED 50
 #define MOTOR_SWITCH_DELAY 100
 
 // Timer
 unsigned long timer_dt = millis();
+unsigned long timer_logging = millis();
+unsigned int logging_pace = 500;
 
 // Sensors
 const unsigned int CENTER_OF_THE_LINE = 2000;
@@ -25,8 +26,9 @@ unsigned int sensorValues[NUM_SENSORS];
 TRSensors trs = TRSensors();
 
 // PID
+double PID = 0;
 int past_error = 0;
-int dt = 50;
+unsigned int dt = 50;
 double integral = 0;
 
 const double proportion_weight = 1.0;
@@ -65,13 +67,13 @@ class Motor {
 
     public:
         init() {
-          pinMode(pinFwd, OUTPUT);
-          pinMode(pinRev, OUTPUT);
-          pinMode(pinPow, OUTPUT);
+              pinMode(pinFwd, OUTPUT);
+              pinMode(pinRev, OUTPUT);
+              pinMode(pinPow, OUTPUT);
         }
         set_speed(int speed) {
-          speed = constrain(speed, 0, 255);
-          analogWrite(pinPow, speed);
+              speed = constrain(speed, 0, 255);
+              analogWrite(pinPow, speed);
         }
         set_direction(bool forward) {
           if (forward) {
@@ -85,7 +87,7 @@ class Motor {
           }
         }
         stop(){
-          set_speed(0);
+            set_speed(0);
         }
         Motor(int pinFwd, int pinRev, int pinPow) {
           this->pinFwd = pinFwd;
@@ -100,8 +102,8 @@ Motor left_motor(LEFT_MOTOR_FWD,LEFT_MOTOR_REV,LEFT_MOTOR_ENABLE);
 
 // Movements
 void stop() {
-  right_motor.stop();
-  left_motor.stop();
+      right_motor.stop();
+      left_motor.stop();
 }
 
 void move_forward() {
@@ -121,34 +123,47 @@ void calibrate() {
     double derivative = (past_error - current_error) / dt;
     integral = integral + current_error * dt;
 
-    double PID = proportion * proportion_weight + derivative * derivative_weight + integral * integral_weight;
+    PID = proportion * proportion_weight + derivative * derivative_weight + integral * integral_weight;
 
-    right_motor.set_speed(ROTATION_SPEED + PID);
-    left_motor.set_speed(ROTATION_SPEED - PID);
+    right_motor.set_speed(DEFAULT_SPEED + PID);
+    left_motor.set_speed(DEFAULT_SPEED - PID);
 
     past_error = current_error;
 }
 
+// Debug
+void log_state() {
+    // Print PID
+    Serial.print("PID :");
+    Serial.print(PID);
+    Serial.print("\n");
+}
+
 void setup() {
-  // Monitor output
-  Serial.begin(9600);
+    // Monitor output
+    Serial.begin(9600);
 
-  // Initialzie motors
-  left_motor.init();
-  right_motor.init();
+    // Initialzie motors
+    left_motor.init();
+    right_motor.init();
 
-  // Calibrate sensors
-  calibrateSensors(trs);
+    // Calibrate sensors
+    calibrateSensors(trs);
 
-  // Start moving
-  move_forward();
+    // Start moving
+    move_forward();
 }
 
 void loop() {
     const unsigned long current_time = millis();
 
     if (current_time - timer_dt >= dt) { // timer for 100 ms
-      timer_dt = current_time;
-      calibrate();
+        timer_dt = current_time;
+        calibrate();
     }
+
+  if (current_time - timer_logging >= logging_pace) { // timer for 100 ms
+      timer_logging = current_time;
+      log_state();
+  }
 }
