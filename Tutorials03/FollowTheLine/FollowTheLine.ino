@@ -19,14 +19,14 @@
 unsigned long timer_dt = millis();
 
 // Sensors
-const unsigned int CENTER_OF_THE_LINE = 200;
+const unsigned int CENTER_OF_THE_LINE = 2000;
 constexpr int NUM_SENSORS = 5;
 unsigned int sensorValues[NUM_SENSORS];
 TRSensors trs = TRSensors();
 
 // PID
 int past_error = 0;
-int dt = 100;
+int dt = 50;
 double integral = 0;
 
 const double proportion_weight = 1.0;
@@ -112,37 +112,19 @@ void move_forward() {
     left_motor.set_speed(DEFAULT_SPEED);
 }
 
-void calibrateToRight(double PID) {
-
-    int difference = constrain(PID, 0, 255);
-
-    right_motor.set_speed(ROTATION_SPEED - difference);
-    left_motor.set_speed(ROTATION_SPEED);
-}
-
-void calibrateToLeft(double PID) {
-
-    int difference = constrain(PID, 0, 255);
-
-    right_motor.set_speed(ROTATION_SPEED);
-    left_motor.set_speed(ROTATION_SPEED - difference);
-}
-
 void calibrate() {
     unsigned int current_position = trs.readLine(sensorValues);
     int current_error = CENTER_OF_THE_LINE - current_position;
 
     // PID attributes
-    double proportion =  current_error;
+    double proportion = current_error;
     double derivative = (past_error - current_error) / dt;
     integral = integral + current_error * dt;
 
     double PID = proportion * proportion_weight + derivative * derivative_weight + integral * integral_weight;
 
-    if (PID > 0)
-      calibrateToRight(PID);
-    if (PID < 0)
-      calibrateToLeft(PID);
+    right_motor.set_speed(ROTATION_SPEED + PID);
+    left_motor.set_speed(ROTATION_SPEED - PID);
 
     past_error = current_error;
 }
