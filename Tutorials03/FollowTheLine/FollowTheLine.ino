@@ -24,14 +24,14 @@ unsigned int sensorValues[NUM_SENSORS];
 TRSensors trs = TRSensors();
 
 // PID
-const unsigned int dt = 1000;
+const unsigned int dt = 20;
 
 int past_error = 0;
 long long int integral = 0;
 
-const double proportion_weight = 0.5;
-const double integral_weight = 0.0005;
-const double derivative_weight = 10;
+const double proportion_weight = 0.2;
+const double integral_weight = 0.00001;
+const double derivative_weight = 0.4;
 
 // Logging - Debug
 unsigned long calibration_iteration = 0;
@@ -45,6 +45,15 @@ void log_state(int iteration_number, int current_error, int past_error,
     Serial.print("Iteration : ");
     Serial.print(iteration_number);
     Serial.print("\t");
+
+    // Print sensor values
+    Serial.print("Sensor values : ");
+    for (int i = 0; i < 5; i++) {
+      Serial.print(sensorValues[i]);
+      Serial.print(" ");
+    }
+    Serial.print("\t");
+
 
     // Print Current error
     Serial.print("Current error : ");
@@ -170,16 +179,11 @@ void calibrate() {
     unsigned int current_position = trs.readLine(sensorValues);
     int current_error = CENTER_OF_THE_LINE - current_position;
 
-    for (int i = 0; i < 5; i++) {
-      Serial.print(sensorValues[i]);
-      Serial.print(" ");
-    }
-
     // PID attributes
     double weighted_proportion = (current_error) * proportion_weight;
     integral += current_error * static_cast<int>(dt);
     double weighted_integral = integral * integral_weight;
-    double weighted_derivative = ((past_error - current_error) / dt) * derivative_weight;
+    double weighted_derivative = ((static_cast<double>(past_error) - static_cast<double>(current_error)) / dt) * derivative_weight;
 
     // Caculation of PID value
     double PID = weighted_proportion + weighted_integral + weighted_derivative;
@@ -188,14 +192,14 @@ void calibrate() {
     right_motor.set_speed(DEFAULT_SPEED + PID);
     left_motor.set_speed(DEFAULT_SPEED - PID);
 
+    // Logging
+    log_state(calibration_iteration, current_error, past_error, PID, weighted_proportion, weighted_integral, weighted_derivative);
+
     // Auxuliary values for second iteration
     past_error = current_error;
 
     // Incrementing number of calibrations for debug purposes
     calibration_iteration++;
-
-    // Logging
-    log_state(calibration_iteration, current_error, past_error, PID, weighted_proportion, weighted_integral, weighted_derivative);
 }
 
 
@@ -207,6 +211,9 @@ void setup() {
     // Initialzie motors
     left_motor.init();
     right_motor.init();
+
+    // Pre calibration delay
+    delay(7000);
 
     // Calibrate sensors
     calibrateSensors(trs);
