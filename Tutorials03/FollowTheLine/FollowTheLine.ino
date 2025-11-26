@@ -30,7 +30,7 @@ int past_error = 0;
 double integral = 0;
 
 const double proportion_weight = 0.5;
-const double integral_weight = 0;
+const double integral_weight = 0.0005;
 const double derivative_weight = 0.2;
 
 // Logging - Debug
@@ -62,18 +62,28 @@ void log_state(int iteration_number, int current_error, int past_error,
     Serial.print("\t");
 
     // Print proportion
-    Serial.print("Weighted proportion : ");
+    Serial.print("weighted Proportion : ");
     Serial.print(proportion);
     Serial.print("\t");
 
     // Print Integral
-    Serial.print("Weighted integral : ");
+    Serial.print("weighted Integral : ");
     Serial.print(integral);
     Serial.print("\t");
 
     // Print Integral
-    Serial.print("Weighted derivative : ");
+    Serial.print("weighted Derivative : ");
     Serial.print(derivative);
+    Serial.print("\t");
+
+    // Print Left Motor Speed
+    Serial.print("non constrainded Left Motor Speed : ");
+    Serial.print(DEFAULT_SPEED - PID);
+    Serial.print("\t");
+
+    // Print Right Motor Speed
+    Serial.print("non constrainded Right Motor Speed : ");
+    Serial.print(DEFAULT_SPEED + PID);
     Serial.print("\n");
 }
 
@@ -161,12 +171,13 @@ void calibrate() {
     int current_error = CENTER_OF_THE_LINE - current_position;
 
     // PID attributes
-    double proportion = current_error;
+    double weighted_proportion = (current_error) * proportion_weight;
     integral = integral + current_error * dt;
-    double derivative = (past_error - current_error) / dt;
+    double weighted_integral = integral * integral_weight;
+    double weighted_derivative = ((past_error - current_error) / dt) * derivative_weight;
 
     // Caculation of PID value
-    double PID = proportion * proportion_weight + integral * integral_weight + derivative * derivative_weight;
+    double PID = weighted_proportion + weighted_integral + weighted_derivative;
 
     // Reaction on the system proportional to PID value
     right_motor.set_speed(DEFAULT_SPEED + PID);
@@ -179,7 +190,7 @@ void calibrate() {
     calibration_iteration++;
 
     // Logging
-    log_state(calibration_iteration, current_error, past_error, PID, proportion, integral, derivative);
+    log_state(calibration_iteration, current_error, past_error, PID, weighted_proportion, weighted_integral, weighted_derivative);
 }
 
 
