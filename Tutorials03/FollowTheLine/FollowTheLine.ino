@@ -24,14 +24,14 @@ unsigned int sensorValues[NUM_SENSORS];
 TRSensors trs = TRSensors();
 
 // PID
-const unsigned int dt = 50;
+const unsigned int dt = 1000;
 
 int past_error = 0;
-double integral = 0;
+long long int integral = 0;
 
 const double proportion_weight = 0.5;
 const double integral_weight = 0.0005;
-const double derivative_weight = 0.2;
+const double derivative_weight = 10;
 
 // Logging - Debug
 unsigned long calibration_iteration = 0;
@@ -61,35 +61,35 @@ void log_state(int iteration_number, int current_error, int past_error,
     Serial.print(PID);
     Serial.print("\t");
 
-    // Print proportion
-    Serial.print("weighted Proportion : ");
+    // Print Weighted proportion
+    Serial.print("Proportion : ");
     Serial.print(proportion);
     Serial.print("\t");
 
-    // Print Integral
-    Serial.print("weighted Integral : ");
+    // Print Weighted Integral
+    Serial.print("Integral : ");
     Serial.print(integral);
     Serial.print("\t");
 
-    // Print Integral
-    Serial.print("weighted Derivative : ");
+    // Print Weighted Derivative
+    Serial.print("Derivative : ");
     Serial.print(derivative);
     Serial.print("\t");
 
-    // Print Left Motor Speed
-    Serial.print("non constrainded Left Motor Speed : ");
+    // Print Non-contrained Left Motor Speed
+    Serial.print("Left Motor Speed : ");
     Serial.print(DEFAULT_SPEED - PID);
     Serial.print("\t");
 
-    // Print Right Motor Speed
-    Serial.print("non constrainded Right Motor Speed : ");
+    // Print Non-contrained Right Motor Speed
+    Serial.print("Right Motor Speed : ");
     Serial.print(DEFAULT_SPEED + PID);
     Serial.print("\n");
 }
 
 // Sensor calibration
 void calibrateSensors(TRSensors trs){
-  Serial.println("Calibration started");
+  Serial.println("\n\nCalibration started");
   for (int i = 0; i < 500; i++) {
     trs.calibrate();
   }
@@ -170,9 +170,14 @@ void calibrate() {
     unsigned int current_position = trs.readLine(sensorValues);
     int current_error = CENTER_OF_THE_LINE - current_position;
 
+    for (int i = 0; i < 5; i++) {
+      Serial.print(sensorValues[i]);
+      Serial.print(" ");
+    }
+
     // PID attributes
     double weighted_proportion = (current_error) * proportion_weight;
-    integral = integral + current_error * dt;
+    integral += current_error * static_cast<int>(dt);
     double weighted_integral = integral * integral_weight;
     double weighted_derivative = ((past_error - current_error) / dt) * derivative_weight;
 
