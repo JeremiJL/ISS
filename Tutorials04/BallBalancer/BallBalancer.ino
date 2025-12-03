@@ -26,6 +26,9 @@ const double linearity_conversion_scalar = 1.2134;
 // Converts values from voltage domain to the domain of SI unit of length - centimeter
 const double si_length_conversion_scalar = 20000;
 
+// Servo
+Servo myservo;
+
 // Debug
 void log_state(int current_position, int current_error, double pid, double proportion, double integral, double derivative) {
 
@@ -84,8 +87,9 @@ int measure_distance_in_cm() {
     return distance_in_cm - 14;
 }
 
-void pull_plane(double pid) {
-
+void apply_to_servo(double pid) {
+    int angle = myservo.read();
+    myservo.write(angle + pid);
 }
 
 void calibrate() {
@@ -103,7 +107,7 @@ void calibrate() {
     double pid = weighted_proportion + weighted_integral + weighted_derivative;
 
     // Reaction on the system proportional to PID value
-    pull_plane(pid);
+    apply_to_servo(pid);
 
     // Logging
     log_state(current_position, current_error, pid, weighted_proportion, weighted_integral, weighted_derivative);
@@ -114,6 +118,7 @@ void calibrate() {
 
 void setup() {
     Serial.begin(9600);
+    myservo.attach(MOTOR_PIN);
 }
 
 void loop() {
