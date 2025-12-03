@@ -22,12 +22,12 @@ const double derivative_weight = 0.1;
 // Sensors
 const unsigned int sample_size = 100;
 // Converts values from the exponential domain to the linear domain
-const double linearity_conversion_scalar = 1.2;
-// Converts values from infrared lights readings domain to the domain of SI unit of length - centimeter
-const double si_length_conversion_scalar = 10;
+const double linearity_conversion_scalar = 1.2134;
+// Converts values from voltage domain to the domain of SI unit of length - centimeter
+const double si_length_conversion_scalar = 20000;
 
 // Debug
-void log_state(int current_position, int current_error, double PID, double proportion, double integral, double derivative) {
+void log_state(int current_position, int current_error, double pid, double proportion, double integral, double derivative) {
 
     // Print Current position
     Serial.print("Current position : ");
@@ -58,6 +58,8 @@ void log_state(int current_position, int current_error, double PID, double propo
     Serial.print("Derivative : ");
     Serial.print(derivative);
     Serial.print("\t");
+
+    Serial.print("\n");
 }
 
 void process_serial() {
@@ -70,8 +72,16 @@ int measure_distance_in_cm() {
     for (int i = 0; i < sample_size; i++) {
         raw_distance += analogRead(SENSOR_PIN);
     }
+
     raw_distance /= sample_size;
-    int distance_in_cm = (pow(raw_distance, -linearity_conversion_scalar) * si_length_conversion_scalar).toInt();
+
+    // Print Weighted Derivative
+    Serial.print("\nRaw distance : ");
+    Serial.print(raw_distance);
+    Serial.print("\n");
+
+    int distance_in_cm = static_cast<int>((pow(raw_distance, -linearity_conversion_scalar) * si_length_conversion_scalar));
+    return distance_in_cm - 14;
 }
 
 void pull_plane(double pid) {
@@ -102,11 +112,11 @@ void calibrate() {
     past_error = current_error;
 }
 
-setup() {
-
+void setup() {
+    Serial.begin(9600);
 }
 
-loop() {
+void loop() {
     // 1. Process serial input, alter balancing position if neccesary
 
     const unsigned long current_time = millis();
