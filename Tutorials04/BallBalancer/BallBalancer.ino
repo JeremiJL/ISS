@@ -9,28 +9,30 @@ unsigned long serial_read_timer = millis();
 unsigned int serial_read_interval = 1000;
 
 // PID
-int unsigned set_point = 0;
-unsigned int dt = 50;
+float set_point = 14;
+const float dt = 0.1;
 
-int past_error = 0;
-long long int integral = 0;
+float past_error = 0.0;
+float integral = 0.0;
 
-const double proportion_weight = 0.5;
-const double integral_weight = 0.00001;
-const double derivative_weight = 0.1;
+const float proportion_weight = 0.8;
+const float integral_weight = 0.08;
+const float derivative_weight = 0.2;
 
 // Sensors
 const unsigned int sample_size = 200;
 // Converts values from the exponential domain to the linear domain
-const double linearity_conversion_scalar = 1.2134;
+const float linearity_conversion_scalar = 1.2134;
 // Converts values from voltage domain to the domain of SI unit of length - centimeter
-const double si_length_conversion_scalar = 20000;
+const float si_length_conversion_scalar = 22000;
+
+const int reference_angle = 90;
 
 // Servo
 Servo myservo;
 
 // Debug
-void log_state(int current_position, int current_error, double pid, double proportion, double integral, double derivative, int angle) {
+void log_state(float current_position, float current_error, float pid, float proportion, float integral, float derivative, int angle) {
 
     // Print Current position
     Serial.print("Current position : ");
@@ -72,11 +74,11 @@ void log_state(int current_position, int current_error, double pid, double propo
 
 void process_serial() {
     String order = Serial.readStringUntil('\n');
-    int set_point = order.toInt() + 14;
+    set_point = order.toInt() + 14;
 }
 
-int measure_distance_in_cm() {
-    int raw_distance = 0;
+float measure_distance_in_cm() {
+    float raw_distance = 0;
     for (int i = 0; i < sample_size; i++) {
         raw_distance += analogRead(SENSOR_PIN);
     }
@@ -88,32 +90,32 @@ int measure_distance_in_cm() {
     Serial.print(raw_distance);
     Serial.print("\n");
 
-    int distance_in_cm = static_cast<int>((pow(raw_distance, -linearity_conversion_scalar) * si_length_conversion_scalar));
+    float distance_in_cm = (pow(raw_distance, -linearity_conversion_scalar) * si_length_conversion_scalar);
     return distance_in_cm - 14;
 }
 
-void apply_to_servo(double pid) {
-    int angle = myservo.read();
-    myservo.write(angle + pid);
+void apply_to_servo(float pid) {
+    int angle = constrain(reference_angle + pid, 70, 110);
+    myservo.write(angle);
 }
 
 void neutralize_angle() {
-    myservo.write(0);
+    myservo.write(reference_angle);
 }
 
 void calibrate() {
     // Auxuliary values
-    unsigned int current_position = measure_distance_in_cm();
-    int current_error = current_position - set_point;
+    float current_position = measure_distance_in_cm();
+    float current_error = current_position - set_point;
 
     // PID attributes
-    double weighted_proportion = (current_error) * proportion_weight;
-    integral += current_error * static_cast<int>(dt);
-    double weighted_integral = integral * integral_weight;
-    double weighted_derivative = ((static_cast<double>(past_error) - static_cast<double>(current_error)) / dt) * derivative_weight;
+    float weighted_proportion = (current_error) * proportion_weight;
+    integral += current_error * dt;
+    float weighted_integral = integral * integral_weight;
+    float weighted_derivative = ((past_error - current_error) / dt) * derivative_weight;
 
     // Caculation of PID value
-    double pid = weighted_proportion + weighted_integral + weighted_derivative;
+    float pid = weighted_proportion + weighted_integral + weighted_derivative;
 
     // Reaction on the system proportional to PID value
     apply_to_servo(pid);
@@ -137,7 +139,7 @@ void loop() {
 
     const unsigned long current_time = millis();
 
-    if (current_time - timer_dt >= dt) {
+    if (current_time - timer_dt >= static_cast<int>(dt * 100)) {
         timer_dt = current_time;
         calibrate();
     }
