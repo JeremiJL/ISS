@@ -20,7 +20,7 @@ const double integral_weight = 0.00001;
 const double derivative_weight = 0.1;
 
 // Sensors
-const unsigned int sample_size = 100;
+const unsigned int sample_size = 200;
 // Converts values from the exponential domain to the linear domain
 const double linearity_conversion_scalar = 1.2134;
 // Converts values from voltage domain to the domain of SI unit of length - centimeter
@@ -30,7 +30,7 @@ const double si_length_conversion_scalar = 20000;
 Servo myservo;
 
 // Debug
-void log_state(int current_position, int current_error, double pid, double proportion, double integral, double derivative) {
+void log_state(int current_position, int current_error, double pid, double proportion, double integral, double derivative, int angle) {
 
     // Print Current position
     Serial.print("Current position : ");
@@ -45,6 +45,11 @@ void log_state(int current_position, int current_error, double pid, double propo
     // Print PID
     Serial.print("PID : ");
     Serial.print(pid);
+    Serial.print("\t");
+
+    // Print Angle
+    Serial.print("Angle : ");
+    Serial.print(angle);
     Serial.print("\t");
 
     // Print Weighted proportion
@@ -92,6 +97,10 @@ void apply_to_servo(double pid) {
     myservo.write(angle + pid);
 }
 
+void neutralize_angle() {
+    myservo.write(0);
+}
+
 void calibrate() {
     // Auxuliary values
     unsigned int current_position = measure_distance_in_cm();
@@ -110,7 +119,8 @@ void calibrate() {
     apply_to_servo(pid);
 
     // Logging
-    log_state(current_position, current_error, pid, weighted_proportion, weighted_integral, weighted_derivative);
+    int angle = myservo.read();
+    log_state(current_position, current_error, pid, weighted_proportion, weighted_integral, weighted_derivative, angle);
 
     // Auxuliary values for second iteration
     past_error = current_error;
@@ -119,6 +129,7 @@ void calibrate() {
 void setup() {
     Serial.begin(9600);
     myservo.attach(MOTOR_PIN);
+    neutralize_angle();
 }
 
 void loop() {
